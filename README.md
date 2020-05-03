@@ -19,5 +19,6 @@ MIT (see file LICENSE)
 License of media (textures and sounds):
 ---------------------------------------
 engine.ogg and collision.ogg by APercy. See License file
+
 Boat model by APercy. See License file
 

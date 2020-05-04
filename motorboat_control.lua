@@ -10,7 +10,7 @@ wanted_vert_speed = 10
 vector_up = vector.new(0, 1, 0)
 vector_forward = vector.new(0, 0, 1)
 
-motorboat_last_time_command = minetest.get_us_time()
+motorboat_last_time_command = 0
 
 function vector_length_sq(v)
 	return v.x * v.x + v.y * v.y + v.z * v.z

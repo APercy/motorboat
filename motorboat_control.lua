@@ -35,15 +35,18 @@ function check_node_below(obj)
 end
 
 function motorboat_control(self, dtime, hull_direction, longit_speed, longit_drag, later_speed, later_drag, accel)
+    motorboat_last_time_command = motorboat_last_time_command + dtime
+    if motorboat_last_time_command > 1 then motorboat_last_time_command = 1 end
 	local player = minetest.get_player_by_name(self.driver_name)
     local retval_accel = accel;
+    
 	-- player control
 	if player then
 		local ctrl = player:get_player_control()
 		
 		if ctrl.sneak then
-            if ((minetest.get_us_time() - motorboat_last_time_command) / 1000) > 300 and longit_speed < 0.2 and longit_speed > -0.2 then
-                motorboat_last_time_command = minetest.get_us_time()
+            if motorboat_last_time_command > 0.3 and longit_speed < 0.2 and longit_speed > -0.2 then
+                motorboat_last_time_command = 0
 			    if self.anchored == false then
                     self.anchored = true
                     self.object:set_velocity(vector.new())
@@ -81,8 +84,8 @@ function motorboat_control(self, dtime, hull_direction, longit_speed, longit_dra
 
 		if ctrl.jump then
             --sets the engine running - but sets a delay also, cause keypress
-            if ((minetest.get_us_time() - motorboat_last_time_command) / 1000) > 300 then
-                motorboat_last_time_command = minetest.get_us_time()
+            if motorboat_last_time_command > 0.3 then
+                motorboat_last_time_command = 0
 			    if self.engine_running then
 				    self.engine_running = false
 			        -- sound and animation

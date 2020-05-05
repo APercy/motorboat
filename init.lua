@@ -309,10 +309,10 @@ minetest.register_entity("motorboat:boat", {
         ---------------------------------
         -- end roll
 
-		local bob = minmax(dot(accel,hull_direction),1)	-- vertical bobbing
+		local bob = minmax(dot(accel,hull_direction),0.8)	-- vertical bobbing
 
 		if self.isinliquid then
-			accel.y = accel_y+bob
+			accel.y = accel_y + bob
 			newpitch = velocity.y * math.rad(6)
 			self.object:set_acceleration(accel)
 		end

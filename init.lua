@@ -146,7 +146,6 @@ minetest.register_entity("motorboat:boat", {
     textures = {},
 	driver_name = nil,
 	sound_handle = nil,
-	tilting = vector.new(),
     energy = 0.001,
     owner = "",
     static_save = true,
@@ -455,12 +454,12 @@ minetest.register_entity("motorboat:boat", {
 -- items
 --
 
--- blades
+-- engine
 minetest.register_craftitem("motorboat:engine",{
 	description = "Boat engine",
 	inventory_image = "motorboat_engine_inv.png",
 })
--- cabin
+-- hull
 minetest.register_craftitem("motorboat:hull",{
 	description = "Hull of the boat",
 	inventory_image = "motorboat_hull_inv.png",

@@ -4,6 +4,8 @@
 local LONGIT_DRAG_FACTOR = 0.13*0.13
 local LATER_DRAG_FACTOR = 2.0
 
+gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.8
+
 local colors ={
     black='#2b2b2b',
     blue='#0063b0',
@@ -424,6 +426,7 @@ minetest.register_entity("motorboat:boat", {
 		    clicker:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
 		    player_api.set_animation(clicker, "stand")
 		    self.driver = nil
+            self.object:set_acceleration(vector.multiply(vector_up, -gravity))
         
 		elseif not self.driver_name then
 	        -- no driver => clicker is new driver

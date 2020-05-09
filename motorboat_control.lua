@@ -45,7 +45,8 @@ function motorboat_control(self, dtime, hull_direction, longit_speed, longit_dra
 		local ctrl = player:get_player_control()
 		
 		if ctrl.sneak then
-            if motorboat_last_time_command > 0.3 and longit_speed < 0.2 and longit_speed > -0.2 then
+            local max_speed_anchor = 0.2
+            if motorboat_last_time_command > 0.3 and longit_speed < max_speed_anchor and longit_speed > -max_speed_anchor then
                 motorboat_last_time_command = 0
 			    if self.anchored == false then
                     self.anchored = true
@@ -54,6 +55,10 @@ function motorboat_control(self, dtime, hull_direction, longit_speed, longit_dra
                 else
                     self.anchored = false
                     minetest.chat_send_player(self.driver_name, 'weigh anchor!')
+                end
+            else
+                if longit_speed >= max_speed_anchor or longit_speed <= -max_speed_anchor then
+                    self.rudder_angle = 0
                 end
             end
 		end

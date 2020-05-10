@@ -5,9 +5,9 @@ local LONGIT_DRAG_FACTOR = 0.13*0.13
 local LATER_DRAG_FACTOR = 2.0
 
 motorboat={}
-gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.8
+motorboat.gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.8
 
-local colors ={
+motorboat.colors ={
     black='#2b2b2b',
     blue='#0063b0',
     brown='#8c5922',
@@ -29,9 +29,6 @@ dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_control.lua"
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_fuel_management.lua")
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_custom_physics.lua")
 
-
-last_time = minetest.get_us_time()
-local random = math.random
 
 --
 -- helpers and co.
@@ -197,13 +194,12 @@ minetest.register_entity("motorboat:boat", {
 	    self.engine = engine
 
 	    local pointer=minetest.add_entity(pos,'motorboat:pointer')
-        local energy_indicator_angle = get_pointer_angle(self.energy)
+        local energy_indicator_angle = motorboat.get_pointer_angle(self.energy)
 	    pointer:set_attach(self.object,'',{x=0,y=5.52451,z=5.89734},{x=0,y=0,z=energy_indicator_angle})
 	    self.pointer = pointer
 
 		self.object:set_armor_groups({immortal=1})
 
-		--self.object:set_acceleration(vector.multiply(vector_up, -gravity))
         mobkit.actfunc(self, staticdata, dtime_s)
 
 	end,
@@ -263,7 +259,7 @@ minetest.register_entity("motorboat:boat", {
             end
 
             --control
-			accel = motorboat_control(self, dtime, hull_direction, longit_speed, longit_drag, later_speed, later_drag, accel) or vel
+			accel = motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, longit_drag, later_speed, later_drag, accel) or vel
         else
             if self.sound_handle ~= nil then
 	            minetest.sound_stop(self.sound_handle)
@@ -286,7 +282,7 @@ minetest.register_entity("motorboat:boat", {
             local consumed_power = acceleration/6000
             self.energy = self.energy - consumed_power;
 
-            local energy_indicator_angle = get_pointer_angle(self.energy)
+            local energy_indicator_angle = motorboat.get_pointer_angle(self.energy)
             if self.pointer:get_luaentity() then
                 self.pointer:set_attach(self.object,'',{x=0,y=5.52451,z=5.89734},{x=0,y=0,z=energy_indicator_angle})
             else
@@ -343,7 +339,7 @@ minetest.register_entity("motorboat:boat", {
 			return
 		end
 
-        local touching_ground, liquid_below = check_node_below(self.object)
+        local touching_ground, liquid_below = motorboat.check_node_below(self.object)
         
         local is_attached = false
         if puncher:get_attach() == self.object then is_attached = true end
@@ -366,7 +362,7 @@ minetest.register_entity("motorboat:boat", {
 
                     --lets paint!!!!
 				    local color = item_name:sub(indx+1)
-				    local colstr = colors[color]
+				    local colstr = motorboat.colors[color]
                     --minetest.chat_send_all(color ..' '.. dump(colstr))
 				    if colstr then
                         motorboat.paint(self, colstr)
@@ -429,7 +425,7 @@ minetest.register_entity("motorboat:boat", {
 		    clicker:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
 		    player_api.set_animation(clicker, "stand")
 		    self.driver = nil
-            self.object:set_acceleration(vector.multiply(vector_up, -gravity))
+            self.object:set_acceleration(vector.multiply(motorboat.vector_up, -motorboat.gravity))
         
 		elseif not self.driver_name then
 	        -- no driver => clicker is new driver

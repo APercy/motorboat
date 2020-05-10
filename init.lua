@@ -4,6 +4,7 @@
 local LONGIT_DRAG_FACTOR = 0.13*0.13
 local LATER_DRAG_FACTOR = 2.0
 
+motorboat={}
 gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.8
 
 local colors ={
@@ -26,6 +27,7 @@ local colors ={
 
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_control.lua")
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_fuel_management.lua")
+dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_custom_physics.lua")
 
 
 last_time = minetest.get_us_time()
@@ -37,24 +39,24 @@ local random = math.random
 
 local creative_exists = minetest.global_exists("creative")
 
-local function get_hipotenuse_value(point1, point2)
+function motorboat.get_hipotenuse_value(point1, point2)
     return math.sqrt((point1.x - point2.x) ^ 2 + (point1.y - point2.y) ^ 2 + (point1.z - point2.z) ^ 2)
 end
 
-local function dot(v1,v2)
+function motorboat.dot(v1,v2)
 	return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z
 end
 
-local function sign(n)
+function motorboat.sign(n)
 	return n>=0 and 1 or -1
 end
 
-local function minmax(v,m)
-	return math.min(math.abs(v),m)*sign(v)
+function motorboat.minmax(v,m)
+	return math.min(math.abs(v),m)*motorboat.sign(v)
 end
 
 --painting
-local function paint(self, colstr)
+function motorboat.paint(self, colstr)
     if colstr then
         self.color = colstr
         local l_textures = self.initial_properties.textures
@@ -69,7 +71,7 @@ local function paint(self, colstr)
 end
 
 -- destroy the boat
-local function destroy(self)
+function motorboat.destroy(self)
     if self.sound_handle then
         minetest.sound_stop(self.sound_handle)
         self.sound_handle = nil
@@ -124,15 +126,15 @@ initial_properties = {
 	textures = {"motorboat_helice.png", "motorboat_black.png",},
 	},
 	
-on_activate = function(self,std)
-	self.sdata = minetest.deserialize(std) or {}
-	if self.sdata.remove then self.object:remove() end
-end,
-	
-get_staticdata=function(self)
-  self.sdata.remove=true
-  return minetest.serialize(self.sdata)
-end,
+    on_activate = function(self,std)
+	    self.sdata = minetest.deserialize(std) or {}
+	    if self.sdata.remove then self.object:remove() end
+    end,
+	    
+    get_staticdata=function(self)
+      self.sdata.remove=true
+      return minetest.serialize(self.sdata)
+    end,
 	
 })
 
@@ -161,6 +163,7 @@ minetest.register_entity("motorboat:boat", {
     max_hp = 50,
     engine_running = false,
     anchored = true,
+    physics = motorboat.physics,
     --water_drag = 0,
 
     get_staticdata = function(self) -- unloaded/unloads ... is now saved
@@ -184,7 +187,7 @@ minetest.register_entity("motorboat:boat", {
             --minetest.debug("loaded: ", self.energy)
         end
 
-        paint(self, self.color)
+        motorboat.paint(self, self.color)
         local pos = self.object:get_pos()
 
 	    local engine=minetest.add_entity(pos,'motorboat:engine')
@@ -221,10 +224,10 @@ minetest.register_entity("motorboat:boat", {
         local nhdir = {x=hull_direction.z,y=0,z=-hull_direction.x}		-- lateral unit vector
         local velocity = self.object:get_velocity()
 
-        local longit_speed = dot(velocity,hull_direction)
-        local longit_drag = vector.multiply(hull_direction,longit_speed*longit_speed*LONGIT_DRAG_FACTOR*-1*sign(longit_speed))
-		local later_speed = dot(velocity,nhdir)
-		local later_drag = vector.multiply(nhdir,later_speed*later_speed*LATER_DRAG_FACTOR*-1*sign(later_speed))
+        local longit_speed = motorboat.dot(velocity,hull_direction)
+        local longit_drag = vector.multiply(hull_direction,longit_speed*longit_speed*LONGIT_DRAG_FACTOR*-1*motorboat.sign(longit_speed))
+		local later_speed = motorboat.dot(velocity,nhdir)
+		local later_drag = vector.multiply(nhdir,later_speed*later_speed*LATER_DRAG_FACTOR*-1*motorboat.sign(later_speed))
         local accel = vector.add(longit_drag,later_drag)
 
         local vel = self.object:get_velocity()
@@ -242,7 +245,7 @@ minetest.register_entity("motorboat:boat", {
         end
 
 		if is_attached then
-            local impact = get_hipotenuse_value(vel, self.last_vel)
+            local impact = motorboat.get_hipotenuse_value(vel, self.last_vel)
             if impact > 1 then
                 --self.damage = self.damage + impact --sum the impact value directly to damage meter
                 local curr_pos = self.object:get_pos()
@@ -255,7 +258,7 @@ minetest.register_entity("motorboat:boat", {
                     pitch = 1.0,
                 })
                 --[[if self.damage > 100 then --if acumulated damage is greater than 100, adieu
-                    destroy(self)   
+                    motorboat.destroy(self)   
                 end]]--
             end
 
@@ -272,14 +275,14 @@ minetest.register_entity("motorboat:boat", {
 
 		if math.abs(self.rudder_angle)>5 then 
             local turn_rate = math.rad(24)
-			newyaw = yaw + self.dtime*(1 - 1 / (math.abs(longit_speed) + 1)) * self.rudder_angle / 30 * turn_rate * sign(longit_speed)
+			newyaw = yaw + self.dtime*(1 - 1 / (math.abs(longit_speed) + 1)) * self.rudder_angle / 30 * turn_rate * motorboat.sign(longit_speed)
 		end
 
         -- calculate energy consumption --
         ----------------------------------
         if self.energy > 0 and self.engine_running then
             local zero_reference = vector.new()
-            local acceleration = get_hipotenuse_value(accel, zero_reference)
+            local acceleration = motorboat.get_hipotenuse_value(accel, zero_reference)
             local consumed_power = acceleration/6000
             self.energy = self.energy - consumed_power;
 
@@ -304,14 +307,14 @@ minetest.register_entity("motorboat:boat", {
         ---------------------------------
 		local sdir = minetest.yaw_to_dir(newyaw)
 		local snormal = {x=sdir.z,y=0,z=-sdir.x}	-- rightside, dot is negative
-		local prsr = dot(snormal,nhdir)
+		local prsr = motorboat.dot(snormal,nhdir)
         local rollfactor = -10
         newroll = (prsr*math.rad(rollfactor))*later_speed
         --minetest.chat_send_all('newroll: '.. newroll)
         ---------------------------------
         -- end roll
 
-		local bob = minmax(dot(accel,hull_direction),0.8)	-- vertical bobbing
+		local bob = motorboat.minmax(motorboat.dot(accel,hull_direction),0.8)	-- vertical bobbing
 
 		if self.isinliquid then
 			accel.y = accel_y + bob
@@ -366,7 +369,7 @@ minetest.register_entity("motorboat:boat", {
 				    local colstr = colors[color]
                     --minetest.chat_send_all(color ..' '.. dump(colstr))
 				    if colstr then
-                        paint(self, colstr)
+                        motorboat.paint(self, colstr)
 					    itmstck:set_count(itmstck:get_count()-1)
 					    puncher:set_wielded_item(itmstck)
 				    end
@@ -389,7 +392,7 @@ minetest.register_entity("motorboat:boat", {
             end
 
             if self.hp <= 0 then
-                destroy(self)
+                motorboat.destroy(self)
             end
 
         end

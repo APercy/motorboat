@@ -30,23 +30,22 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
 	-- player control
 	if player then
 		local ctrl = player:get_player_control()
-		
-		if ctrl.sneak then
-            local max_speed_anchor = 0.2
-            if motorboat.motorboat_last_time_command > 0.3 and longit_speed < max_speed_anchor and longit_speed > -max_speed_anchor then
-                motorboat.motorboat_last_time_command = 0
-			    if self.anchored == false then
-                    self.anchored = true
-                    self.object:set_velocity(vector.new())
-                    minetest.chat_send_player(self.driver_name, 'anchors away!')
-                else
-                    self.anchored = false
-                    minetest.chat_send_player(self.driver_name, 'weigh anchor!')
-                end
+        local max_speed_anchor = 0.2
+        if ctrl.aux1 and motorboat.motorboat_last_time_command > 0.3 and longit_speed < max_speed_anchor and longit_speed > -max_speed_anchor then
+            motorboat.motorboat_last_time_command = 0
+		    if self.anchored == false then
+                self.anchored = true
+                self.object:set_velocity(vector.new())
+                minetest.chat_send_player(self.driver_name, 'anchors away!')
             else
-                if longit_speed >= max_speed_anchor or longit_speed <= -max_speed_anchor then
-                    self.rudder_angle = 0
-                end
+                self.anchored = false
+                minetest.chat_send_player(self.driver_name, 'weigh anchor!')
+            end
+        end		
+
+		if ctrl.sneak then
+            if longit_speed >= max_speed_anchor or longit_speed <= -max_speed_anchor then
+                self.rudder_angle = 0
             end
 		end
 

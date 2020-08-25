@@ -120,6 +120,7 @@ initial_properties = {
 	pointable=false,
 	visual = "mesh",
 	mesh = "engine.b3d",
+    --visual_size = {x = 3, y = 3, z = 3},
 	textures = {"motorboat_helice.png", "motorboat_black.png",},
 	},
 	
@@ -134,6 +135,30 @@ initial_properties = {
     end,
 	
 })
+
+-- attach player
+function motorboat.attach(self, player)
+    local name = player:get_player_name()
+    self.driver_name = name
+
+    -- temporary------
+    self.hp = 50 -- why? cause I can desist from destroy
+    ------------------
+
+    -- attach the driver
+    player:set_attach(self.object, "", {x = 0, y = 5, z = -6}, {x = 0, y = 0, z = 0})
+    player:set_eye_offset({x = 0, y = 0, z = -5.5}, {x = 0, y = 0, z = -5.5})
+    player_api.player_attached[name] = true
+    -- make the driver sit
+    minetest.after(0.2, function()
+        local player = minetest.get_player_by_name(name)
+        if player then
+	        player_api.set_animation(player, "sit")
+        end
+    end)
+    -- disable gravity
+    self.object:set_acceleration(vector.new())
+end
 
 minetest.register_entity("motorboat:boat", {
 	initial_properties = {
@@ -170,6 +195,7 @@ minetest.register_entity("motorboat:boat", {
             stored_hp = self.hp,
             stored_color = self.color,
             stored_anchor = self.anchored,
+            stored_driver_name = self.driver_name,
         })
     end,
 
@@ -181,6 +207,7 @@ minetest.register_entity("motorboat:boat", {
             self.hp = data.stored_hp
             self.color = data.stored_color
             self.anchored = data.stored_anchor
+            self.driver_name = data.stored_driver_name
             --minetest.debug("loaded: ", self.energy)
         end
 
@@ -261,9 +288,23 @@ minetest.register_entity("motorboat:boat", {
             --control
 			accel = motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, longit_drag, later_speed, later_drag, accel) or vel
         else
-            if self.sound_handle ~= nil then
-	            minetest.sound_stop(self.sound_handle)
-	            self.sound_handle = nil
+            -- for some engine error the player can be detached from the submarine, so lets set him attached again
+            local can_stop = true
+            if self.owner and self.driver_name then
+                -- attach the driver again
+                local player = minetest.get_player_by_name(self.owner)
+                if player then
+                    motorboat.attach(self, player)
+                    can_stop = false
+                end
+            end
+
+            if can_stop then
+                --detach player
+                if self.sound_handle ~= nil then
+	                minetest.sound_stop(self.sound_handle)
+	                self.sound_handle = nil
+                end
             end
 		end
 
@@ -428,26 +469,8 @@ minetest.register_entity("motorboat:boat", {
             self.object:set_acceleration(vector.multiply(motorboat.vector_up, -motorboat.gravity))
         
 		elseif not self.driver_name then
-	        -- no driver => clicker is new driver
-	        self.driver_name = name
-
-            -- temporary------
-            self.hp = 50 -- why? cause I can desist from destroy
-            ------------------
-
-	        -- attach the driver
-	        clicker:set_attach(self.object, "", {x = 0, y = 5, z = -6}, {x = 0, y = 0, z = 0})
-	        clicker:set_eye_offset({x = 0, y = 0, z = -5.5}, {x = 0, y = 0, z = -5.5})
-	        player_api.player_attached[name] = true
-	        -- make the driver sit
-	        minetest.after(0.2, function()
-		        local player = minetest.get_player_by_name(name)
-		        if player then
-			        player_api.set_animation(player, "sit")
-		        end
-	        end)
-	        -- disable gravity
-	        self.object:set_acceleration(vector.new())
+            -- no driver => clicker is new driver
+            motorboat.attach(self, clicker)
 		end
 	end,
 })

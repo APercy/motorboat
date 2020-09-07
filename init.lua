@@ -209,6 +209,12 @@ minetest.register_entity("motorboat:boat", {
             self.anchored = data.stored_anchor
             self.driver_name = data.stored_driver_name
             --minetest.debug("loaded: ", self.energy)
+            --local nametag = self.object:get_nametag_attributes()
+            --nametag.infotext = "Nice motorboat of " .. data.stored_owner
+            --self.object:set_nametag_attributes(nametag)
+            local properties = self.object:get_properties()
+            properties.infotext = "Nice motorboat of " .. data.stored_owner
+            self.object:set_properties(properties)
         end
 
         motorboat.paint(self, self.color)

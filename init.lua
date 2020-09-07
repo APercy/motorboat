@@ -210,7 +210,7 @@ minetest.register_entity("motorboat:boat", {
             self.driver_name = data.stored_driver_name
             --minetest.debug("loaded: ", self.energy)
             local properties = self.object:get_properties()
-            properties.infotext = "Nice motorboat of " .. data.stored_owner
+            properties.infotext = data.stored_owner .. " nice motorboat"
             self.object:set_properties(properties)
         end
 
@@ -521,6 +521,10 @@ minetest.register_craftitem("motorboat:boat", {
                 ent.owner = owner
 				boat:set_yaw(placer:get_look_horizontal())
 				itemstack:take_item()
+
+                local properties = ent.object:get_properties()
+                properties.infotext = owner .. " nice motorboat"
+                ent.object:set_properties(properties)
 			end
         end
 

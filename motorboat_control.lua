@@ -50,7 +50,7 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
 		end
 
         if self.anchored == false then
-            if self.engine_running then
+            if self._engine_running then
                 local engineacc
 		        if longit_speed < 8.0 and ctrl.up then
 			        engineacc = 1.5
@@ -77,8 +77,8 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
             --sets the engine running - but sets a delay also, cause keypress
             if motorboat.motorboat_last_time_command > 0.3 then
                 motorboat.motorboat_last_time_command = 0
-			    if self.engine_running then
-				    self.engine_running = false
+			    if self._engine_running then
+				    self._engine_running = false
 			        -- sound and animation
                     if self.sound_handle then
                         minetest.sound_stop(self.sound_handle)
@@ -86,8 +86,8 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
                     end
 			        self.engine:set_animation_frame_speed(0)
 
-			    elseif self.engine_running == false and self.energy > 0 then
-				    self.engine_running = true
+			    elseif self._engine_running == false and self._energy > 0 then
+				    self._engine_running = true
 		            -- sound and animation
 	                self.sound_handle = minetest.sound_play({name = "engine"},
 			                {object = self.object, gain = 2.0, max_hear_distance = 32, loop = true,})

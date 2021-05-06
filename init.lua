@@ -6,6 +6,7 @@ local LATER_DRAG_FACTOR = 2.0
 
 motorboat={}
 motorboat.gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.8
+motorboat.fuel = {['biofuel:biofuel'] = 1,['biofuel:bottle_fuel'] = 1,['biofuel:phial_fuel'] = 0.25, ['biofuel:fuel_can'] = 10}
 
 motorboat.colors ={
     black='#2b2b2b',
@@ -102,10 +103,10 @@ function motorboat.destroy(self)
     --minetest.add_item({x=pos.x+random()-0.5,y=pos.y,z=pos.z+random()-0.5},'motorboat:boat')
     minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5},'default:diamond')
 
-    local total_biofuel = math.floor(self.energy) - 1
+    --[[local total_biofuel = math.floor(self._energy) - 1
     for i=0,total_biofuel do
         minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5},'biofuel:biofuel')
-    end
+    end]]--
 end
 
 
@@ -172,7 +173,7 @@ minetest.register_entity("motorboat:boat", {
     textures = {},
 	driver_name = nil,
 	sound_handle = nil,
-    energy = 0.001,
+    _energy = 0.001,
     owner = "",
     static_save = true,
     infotext = "A nice boat",
@@ -183,14 +184,14 @@ minetest.register_entity("motorboat:boat", {
     timeout = 0;
     buoyancy = 0.35,
     max_hp = 50,
-    engine_running = false,
+    _engine_running = false,
     anchored = true,
     physics = motorboat.physics,
     --water_drag = 0,
 
     get_staticdata = function(self) -- unloaded/unloads ... is now saved
         return minetest.serialize({
-            stored_energy = self.energy,
+            stored_energy = self._energy,
             stored_owner = self.owner,
             stored_hp = self.hp,
             stored_color = self.color,
@@ -202,13 +203,13 @@ minetest.register_entity("motorboat:boat", {
 	on_activate = function(self, staticdata, dtime_s)
         if staticdata ~= "" and staticdata ~= nil then
             local data = minetest.deserialize(staticdata) or {}
-            self.energy = data.stored_energy
+            self._energy = data.stored_energy
             self.owner = data.stored_owner
             self.hp = data.stored_hp
             self.color = data.stored_color
             self.anchored = data.stored_anchor
             self.driver_name = data.stored_driver_name
-            --minetest.debug("loaded: ", self.energy)
+            --minetest.debug("loaded: ", self._energy)
             local properties = self.object:get_properties()
             properties.infotext = data.stored_owner .. " nice motorboat"
             self.object:set_properties(properties)
@@ -224,7 +225,7 @@ minetest.register_entity("motorboat:boat", {
 	    self.engine = engine
 
 	    local pointer=minetest.add_entity(pos,'motorboat:pointer')
-        local energy_indicator_angle = motorboat.get_pointer_angle(self.energy)
+        local energy_indicator_angle = motorboat.get_pointer_angle(self._energy)
 	    pointer:set_attach(self.object,'',{x=0,y=5.52451,z=5.89734},{x=0,y=0,z=energy_indicator_angle})
 	    self.pointer = pointer
 
@@ -320,13 +321,13 @@ minetest.register_entity("motorboat:boat", {
 
         -- calculate energy consumption --
         ----------------------------------
-        if self.energy > 0 and self.engine_running then
+        if self._energy > 0 and self._engine_running then
             local zero_reference = vector.new()
             local acceleration = motorboat.get_hipotenuse_value(accel, zero_reference)
             local consumed_power = acceleration/6000
-            self.energy = self.energy - consumed_power;
+            self._energy = self._energy - consumed_power;
 
-            local energy_indicator_angle = motorboat.get_pointer_angle(self.energy)
+            local energy_indicator_angle = motorboat.get_pointer_angle(self._energy)
             if self.pointer:get_luaentity() then
                 self.pointer:set_attach(self.object,'',{x=0,y=5.52451,z=5.89734},{x=0,y=0,z=energy_indicator_angle})
             else
@@ -335,8 +336,8 @@ minetest.register_entity("motorboat:boat", {
                 self.pointer:set_attach(self.object,'',{x=0,y=5.52451,z=5.89734},{x=0,y=0,z=energy_indicator_angle})
             end
         end
-        if self.energy <= 0 and self.engine_running then
-            self.engine_running = false
+        if self._energy <= 0 and self._engine_running then
+            self._engine_running = false
             if self.sound_handle then minetest.sound_stop(self.sound_handle) end
 		    self.engine:set_animation_frame_speed(0)
         end
@@ -392,9 +393,9 @@ minetest.register_entity("motorboat:boat", {
         local item_name = ""
         if itmstck then item_name = itmstck:get_name() end
 
-        if is_attached == true and item_name == "biofuel:biofuel" and self.engine_running == false then
+        if is_attached == true and item_name == "biofuel:biofuel" and self._engine_running == false then
             --refuel
-            motorboat_load_fuel(self, puncher:get_player_name())
+            motorboat.loadFuel(self, puncher:get_player_name())
         end
 
         if is_attached == false then
@@ -455,7 +456,7 @@ minetest.register_entity("motorboat:boat", {
             properties.infotext = "Nice motorboat of " .. self.owner
             self.object:set_properties(properties)
 
-            self.engine_running = false
+            self._engine_running = false
 
 			-- driver clicked the object => driver gets off the vehicle
 			self.driver_name = nil

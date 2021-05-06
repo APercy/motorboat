@@ -269,6 +269,7 @@ minetest.register_entity("motorboat:boat", {
     anchored = true,
     _passenger = nil,
     physics = motorboat.physics,
+    _auto = false,
     --water_drag = 0,
 
     get_staticdata = function(self) -- unloaded/unloads ... is now saved

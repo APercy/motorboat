@@ -32,7 +32,7 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
         --minetest.chat_send_all('teste')
 		local ctrl = player:get_player_control()
         local max_speed_anchor = 0.2
-        if ctrl.aux1 and motorboat.motorboat_last_time_command > 0.3 and longit_speed < max_speed_anchor and longit_speed > -max_speed_anchor then
+        if ctrl.sneak and motorboat.motorboat_last_time_command > 0.3 and longit_speed < max_speed_anchor and longit_speed > -max_speed_anchor then
             motorboat.motorboat_last_time_command = 0
 		    if self.anchored == false then
                 self.anchored = true
@@ -42,7 +42,13 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
                 self.anchored = false
                 minetest.chat_send_player(self.driver_name, 'weigh anchor!')
             end
-        end		
+        end
+
+        if ctrl.jump and self._engine_running and motorboat.motorboat_last_time_command > 0.3 then
+            motorboat.motorboat_last_time_command = 0
+            minetest.chat_send_player(self.driver_name, 'running in auto mode')
+            self._auto = true
+        end
 
 		if ctrl.sneak then
             if longit_speed >= max_speed_anchor or longit_speed <= -max_speed_anchor then
@@ -53,13 +59,23 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
         if self.anchored == false then
             if self._engine_running then
                 local engineacc
-		        if longit_speed < 8.0 and ctrl.up then
-			        engineacc = 1.5
-		        else
-                    if longit_speed > -1 and ctrl.down then
-			            engineacc = -0.1
+                if self._auto == false then
+		            if longit_speed < 8.0 and ctrl.up then
+			            engineacc = 1.5
+		            else
+                        if longit_speed > -1 and ctrl.down then
+			                engineacc = -0.1
+                        end
+		            end
+                else
+                    --auto mode
+                    if longit_speed < 8.0 then engineacc = 1.5 end
+                    if ctrl.down or ctrl.up then
+                        minetest.chat_send_player(self.driver_name, 'auto turned off')
+                        self._auto = false
                     end
-		        end
+                end
+
 		        if engineacc then retval_accel=vector.add(accel,vector.multiply(hull_direction,engineacc)) end
                 --minetest.chat_send_all('paddle: '.. paddleacc)
             else
@@ -74,7 +90,8 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
             end
         end
 
-		if ctrl.jump then
+		if ctrl.aux1 then
+            self._auto = false
             --sets the engine running - but sets a delay also, cause keypress
             if motorboat.motorboat_last_time_command > 0.3 then
                 motorboat.motorboat_last_time_command = 0

@@ -29,6 +29,7 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
     
 	-- player control
 	if player then
+        --minetest.chat_send_all('teste')
 		local ctrl = player:get_player_control()
         local max_speed_anchor = 0.2
         if ctrl.aux1 and motorboat.motorboat_last_time_command > 0.3 and longit_speed < max_speed_anchor and longit_speed > -max_speed_anchor then

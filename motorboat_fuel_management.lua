@@ -1,7 +1,7 @@
 --
 -- fuel
 --
-MOTORBOAT_GAUGE_FUEL_POSITION = {x=0,y=5.52451,z=5.89734}
+MOTORBOAT_GAUGE_FUEL_POSITION = {x=0,y=5.52451,z=2.3}
 
 minetest.register_entity('motorboat:pointer',{
 initial_properties = {

@@ -53,6 +53,90 @@ function motorboat.minmax(v,m)
 	return math.min(math.abs(v),m)*motorboat.sign(v)
 end
 
+function motorboat.setText(self)
+    local properties = self.object:get_properties()
+    if properties then
+        properties.infotext = "Nice motorboat of " .. self.owner
+        self.object:set_properties(properties)
+    end
+end
+
+-- attach player
+function motorboat.attach(self, player)
+    local name = player:get_player_name()
+    self.driver_name = name
+
+    -- attach the driver
+    player:set_attach(self.pilot_seat_base, "", {x = 0, y = 0, z = 0}, {x = 0, y = 0, z = 0})
+    player:set_eye_offset({x = 0, y = -4, z = 1}, {x = 0, y = -4, z = -30})
+    player_api.player_attached[name] = true
+    -- make the driver sit
+    minetest.after(0.2, function()
+        local player = minetest.get_player_by_name(name)
+        if player then
+	        player_api.set_animation(player, "sit")
+        end
+    end)
+    -- disable gravity
+    self.object:set_acceleration(vector.new())
+end
+
+-- dettach player
+function motorboat.dettach(self, player)
+    local name = self.driver_name
+    motorboat.setText(self)
+
+    -- driver clicked the object => driver gets off the vehicle
+    self.driver_name = nil
+
+    self._engine_running = false
+	-- sound and animation
+    if self.sound_handle then
+        minetest.sound_stop(self.sound_handle)
+        self.sound_handle = nil
+    end
+	
+	self.engine:set_animation_frame_speed(0)
+
+    -- detach the player
+    player:set_detach()
+    player_api.player_attached[name] = nil
+    player:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
+    player_api.set_animation(player, "stand")
+    self.object:set_acceleration(vector.multiply(motorboat.vector_up, -motorboat.gravity))
+end
+
+-- attach passenger
+function motorboat.attach_pax(self, player)
+    local name = player:get_player_name()
+    self._passenger = name
+    -- attach the passenger
+    player:set_attach(self.passenger_seat_base, "", {x = 0, y = 0, z = 0}, {x = 0, y = 0, z = 0})
+    player:set_eye_offset({x = 0, y = -4, z = 1}, {x = 0, y = -4, z = -30})
+    player_api.player_attached[name] = true
+    -- make the driver sit
+    minetest.after(0.2, function()
+        local player = minetest.get_player_by_name(name)
+        if player then
+            player_api.set_animation(player, "sit")
+        end
+    end)
+end
+
+-- dettach passenger
+function motorboat.dettach_pax(self, player)
+    local name = self._passenger
+
+    -- passenger clicked the object => driver gets off the vehicle
+    self._passenger = nil
+
+    -- detach the player
+    player:set_detach()
+    player_api.player_attached[name] = nil
+    player:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
+    player_api.set_animation(player, "stand")
+end
+
 --painting
 function motorboat.paint(self, colstr)
     if colstr then
@@ -113,6 +197,27 @@ end
 --
 -- entity
 --
+minetest.register_entity('motorboat:seat_base',{
+initial_properties = {
+	physical = false,
+	collide_with_objects=false,
+	pointable=false,
+	visual = "mesh",
+	mesh = "seat_base.b3d",
+    textures = {"motorboat_painting.png",},
+	},
+	
+    on_activate = function(self,std)
+	    self.sdata = minetest.deserialize(std) or {}
+	    if self.sdata.remove then self.object:remove() end
+    end,
+	    
+    get_staticdata=function(self)
+      self.sdata.remove=true
+      return minetest.serialize(self.sdata)
+    end,
+	
+})
 
 minetest.register_entity('motorboat:engine',{
 initial_properties = {
@@ -137,37 +242,13 @@ initial_properties = {
 	
 })
 
--- attach player
-function motorboat.attach(self, player)
-    local name = player:get_player_name()
-    self.driver_name = name
-
-    -- temporary------
-    self.hp = 50 -- why? cause I can desist from destroy
-    ------------------
-
-    -- attach the driver
-    player:set_attach(self.object, "", {x = 0, y = 5, z = -6}, {x = 0, y = 0, z = 0})
-    player:set_eye_offset({x = 0, y = 0, z = -5.5}, {x = 0, y = 0, z = -5.5})
-    player_api.player_attached[name] = true
-    -- make the driver sit
-    minetest.after(0.2, function()
-        local player = minetest.get_player_by_name(name)
-        if player then
-	        player_api.set_animation(player, "sit")
-        end
-    end)
-    -- disable gravity
-    self.object:set_acceleration(vector.new())
-end
-
 minetest.register_entity("motorboat:boat", {
 	initial_properties = {
 	    physical = true,
 	    collisionbox = {-0.6, -0.6, -0.6, 0.6, 1.2, 0.6}, --{-1,0,-1, 1,0.3,1},
 	    selectionbox = {-1,0,-1, 1,1,1},
 	    visual = "mesh",
-	    mesh = "hull.b3d",
+	    mesh = "hull2.b3d",
         textures = {"motorboat_black.png", "motorboat_panel.png", "motorboat_glass.png", "motorboat_hull.png", "default_junglewood.png", "motorboat_painting.png"},
     },
     textures = {},
@@ -186,6 +267,7 @@ minetest.register_entity("motorboat:boat", {
     max_hp = 50,
     _engine_running = false,
     anchored = true,
+    _passenger = nil,
     physics = motorboat.physics,
     --water_drag = 0,
 
@@ -226,8 +308,16 @@ minetest.register_entity("motorboat:boat", {
 
 	    local pointer=minetest.add_entity(pos,'motorboat:pointer')
         local energy_indicator_angle = motorboat.get_pointer_angle(self._energy)
-	    pointer:set_attach(self.object,'',{x=0,y=5.52451,z=5.89734},{x=0,y=0,z=energy_indicator_angle})
+	    pointer:set_attach(self.object,'', MOTORBOAT_GAUGE_FUEL_POSITION,{x=0,y=0,z=energy_indicator_angle})
 	    self.pointer = pointer
+
+        local pilot_seat_base=minetest.add_entity(pos,'motorboat:seat_base')
+        pilot_seat_base:set_attach(self.object,'',{x=-4.2,y=3.8,z=-6},{x=0,y=0,z=0})
+	    self.pilot_seat_base = pilot_seat_base
+
+        local passenger_seat_base=minetest.add_entity(pos,'motorboat:seat_base')
+        passenger_seat_base:set_attach(self.object,'',{x=4.2,y=3.8,z=-6},{x=0,y=0,z=0})
+	    self.passenger_seat_base = passenger_seat_base
 
 		self.object:set_armor_groups({immortal=1})
 
@@ -250,6 +340,7 @@ minetest.register_entity("motorboat:boat", {
         local hull_direction = minetest.yaw_to_dir(yaw)
         local nhdir = {x=hull_direction.z,y=0,z=-hull_direction.x}		-- lateral unit vector
         local velocity = self.object:get_velocity()
+        self.object:set_velocity(velocity)
 
         local longit_speed = motorboat.dot(velocity,hull_direction)
         local longit_drag = vector.multiply(hull_direction,longit_speed*longit_speed*LONGIT_DRAG_FACTOR*-1*motorboat.sign(longit_speed))
@@ -266,7 +357,7 @@ minetest.register_entity("motorboat:boat", {
             if player then
                 local player_attach = player:get_attach()
                 if player_attach then
-                    if player_attach == self.object then is_attached = true end
+                    if player_attach == self.pilot_seat_base then is_attached = true end
                 end
             end
         end
@@ -329,11 +420,11 @@ minetest.register_entity("motorboat:boat", {
 
             local energy_indicator_angle = motorboat.get_pointer_angle(self._energy)
             if self.pointer:get_luaentity() then
-                self.pointer:set_attach(self.object,'',{x=0,y=5.52451,z=5.89734},{x=0,y=0,z=energy_indicator_angle})
+                self.pointer:set_attach(self.object,'',MOTORBOAT_GAUGE_FUEL_POSITION,{x=0,y=0,z=energy_indicator_angle})
             else
                 --in case it have lost the entity by some conflict
                 self.pointer=minetest.add_entity({x=0,y=5.52451,z=5.89734},'motorboat:pointer')
-                self.pointer:set_attach(self.object,'',{x=0,y=5.52451,z=5.89734},{x=0,y=0,z=energy_indicator_angle})
+                self.pointer:set_attach(self.object,'',MOTORBOAT_GAUGE_FUEL_POSITION,{x=0,y=0,z=energy_indicator_angle})
             end
         end
         if self._energy <= 0 and self._engine_running then
@@ -387,13 +478,14 @@ minetest.register_entity("motorboat:boat", {
         local touching_ground, liquid_below = motorboat.check_node_below(self.object)
         
         local is_attached = false
-        if puncher:get_attach() == self.object then is_attached = true end
+        if puncher:get_attach() == self.pilot_seat_base then is_attached = true end
 
         local itmstck=puncher:get_wielded_item()
         local item_name = ""
         if itmstck then item_name = itmstck:get_name() end
 
-        if is_attached == true and item_name == "biofuel:biofuel" and self._engine_running == false then
+        if is_attached == true and self._engine_running == false then
+            --minetest.chat_send_all('refuel')
             --refuel
             motorboat.loadFuel(self, puncher:get_player_name())
         end
@@ -446,40 +538,43 @@ minetest.register_entity("motorboat:boat", {
 		end
 
 		local name = clicker:get_player_name()
-        if self.owner and self.owner ~= name and self.owner ~= "" then return end
+
         if self.owner == "" then
             self.owner = name
         end
 
-		if name == self.driver_name then
-            local properties = self.object:get_properties()
-            properties.infotext = "Nice motorboat of " .. self.owner
-            self.object:set_properties(properties)
+        if self.owner == name then
+		    if name == self.driver_name then
+			    -- driver clicked the object => driver gets off the vehicle
+                motorboat.dettach(self, clicker)
+                if self._passenger then
+                    local passenger = minetest.get_player_by_name(self._passenger)
+                    if passenger then
+                        motorboat.dettach_pax(self, passenger)
+                    end
+                end
+		    elseif not self.driver_name then
+                -- temporary------
+                self.hp = 50 -- why? cause I can desist from destroy
+                ------------------
 
-            self._engine_running = false
-
-			-- driver clicked the object => driver gets off the vehicle
-			self.driver_name = nil
-			-- sound and animation
-            if self.sound_handle then
-                minetest.sound_stop(self.sound_handle)
-                self.sound_handle = nil
+                motorboat.attach(self, clicker)
+		    end
+        else
+            --passenger section
+            --only can enter when the pilot is inside
+            if self.driver_name then
+                if self._passenger == nil then
+                    motorboat.attach_pax(self, clicker)
+                else
+                    motorboat.dettach_pax(self, clicker)
+                end
+            else
+                if self._passenger then
+                    motorboat.dettach_pax(self, clicker)
+                end
             end
-			
-			self.engine:set_animation_frame_speed(0)
-
-            -- detach the player
-		    clicker:set_detach()
-		    player_api.player_attached[name] = nil
-		    clicker:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
-		    player_api.set_animation(clicker, "stand")
-		    self.driver = nil
-            self.object:set_acceleration(vector.multiply(motorboat.vector_up, -motorboat.gravity))
-        
-		elseif not self.driver_name then
-            -- no driver => clicker is new driver
-            motorboat.attach(self, clicker)
-		end
+        end
 	end,
 })
 

@@ -204,7 +204,7 @@ initial_properties = {
 	pointable=false,
 	visual = "mesh",
 	mesh = "seat_base.b3d",
-    textures = {"motorboat_painting.png",},
+    textures = {"motorboat_black.png",},
 	},
 	
     on_activate = function(self,std)

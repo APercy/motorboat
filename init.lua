@@ -662,3 +662,31 @@ if minetest.get_modpath("default") then
 end
 
 
+-- add chatcommand to call back aviator
+
+minetest.register_chatcommand("motorboat_eject", {
+	params = "",
+	description = "Ejects from motorboat",
+	privs = {interact = true},
+	func = function(name, param)
+        local colorstring = core.colorize('#ff0000', " >>> you are not inside your motorboat")
+        local player = minetest.get_player_by_name(name)
+        local attached_to = player:get_attach()
+
+		if attached_to ~= nil then
+            local parent = attached_to:get_attach()
+            if parent ~= nil then
+                local entity = parent:get_luaentity()
+                if entity.driver_name == name and entity.name == "motorboat:boat" then
+                    motorboat.dettach(entity, player)
+                else
+			        minetest.chat_send_player(name,colorstring)
+                end
+            end
+		else
+			minetest.chat_send_player(name,colorstring)
+		end
+	end
+
+			
+})

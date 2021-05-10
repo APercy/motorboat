@@ -662,7 +662,7 @@ if minetest.get_modpath("default") then
 end
 
 
--- add chatcommand to call back motorboat
+-- add chatcommand to eject from motorboat
 
 minetest.register_chatcommand("motorboat_eject", {
 	params = "",

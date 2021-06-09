@@ -21,7 +21,8 @@ function motorboat.check_node_below(obj)
 	return touching_ground, liquid_below
 end
 
-function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, longit_drag, later_speed, later_drag, accel)
+function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed,
+        longit_drag, later_speed, later_drag, accel)
     motorboat.motorboat_last_time_command = motorboat.motorboat_last_time_command + dtime
     if motorboat.motorboat_last_time_command > 1 then motorboat.motorboat_last_time_command = 1 end
 	local player = minetest.get_player_by_name(self.driver_name)
@@ -32,7 +33,8 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
         --minetest.chat_send_all('teste')
 		local ctrl = player:get_player_control()
         local max_speed_anchor = 0.2
-        if ctrl.sneak and motorboat.motorboat_last_time_command > 0.3 and longit_speed < max_speed_anchor and longit_speed > -max_speed_anchor then
+        if ctrl.sneak and motorboat.motorboat_last_time_command > 0.3 and
+                longit_speed < max_speed_anchor and longit_speed > -max_speed_anchor then
             motorboat.motorboat_last_time_command = 0
 		    if self.anchored == false then
                 self.anchored = true
@@ -111,7 +113,7 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, 
 			                {object = self.object, gain = 2.0, max_hear_distance = 32, loop = true,})
                     self.engine:set_animation_frame_speed(30)
 			    end
-            end				
+            end
 		end
 
 		-- rudder

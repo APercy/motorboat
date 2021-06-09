@@ -51,13 +51,12 @@ function motorboat.loadFuel(self, player_name)
     local item_name = ""
     if itmstck then item_name = itmstck:get_name() end
 
-    local stack = nil
     local fuel = motorboat.contains(motorboat.fuel, item_name)
     if fuel then
-        stack = ItemStack(item_name .. " 1")
+        local stack = ItemStack(item_name .. " 1")
 
         if self._energy < 10 then
-            local taken = inv:remove_item("main", stack)
+            inv:remove_item("main", stack)
             self._energy = self._energy + fuel
             if self._energy > 10 then self._energy = 10 end
 

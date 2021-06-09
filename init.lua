@@ -6,7 +6,8 @@ local LATER_DRAG_FACTOR = 2.0
 
 motorboat={}
 motorboat.gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.8
-motorboat.fuel = {['biofuel:biofuel'] = 1,['biofuel:bottle_fuel'] = 1,['biofuel:phial_fuel'] = 0.25, ['biofuel:fuel_can'] = 10}
+motorboat.fuel = {['biofuel:biofuel'] = 1,['biofuel:bottle_fuel'] = 1,
+                ['biofuel:phial_fuel'] = 0.25, ['biofuel:fuel_can'] = 10}
 
 motorboat.colors ={
     black='#2b2b2b',
@@ -34,8 +35,6 @@ dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_custom_physi
 --
 -- helpers and co.
 --
-
-local creative_exists = minetest.global_exists("creative")
 
 function motorboat.get_hipotenuse_value(point1, point2)
     return math.sqrt((point1.x - point2.x) ^ 2 + (point1.y - point2.y) ^ 2 + (point1.z - point2.z) ^ 2)
@@ -72,7 +71,7 @@ function motorboat.attach(self, player)
     player_api.player_attached[name] = true
     -- make the driver sit
     minetest.after(0.2, function()
-        local player = minetest.get_player_by_name(name)
+        player = minetest.get_player_by_name(name)
         if player then
 	        player_api.set_animation(player, "sit")
         end
@@ -116,7 +115,7 @@ function motorboat.attach_pax(self, player)
     player_api.player_attached[name] = true
     -- make the driver sit
     minetest.after(0.2, function()
-        local player = minetest.get_player_by_name(name)
+        player = minetest.get_player_by_name(name)
         if player then
             player_api.set_animation(player, "sit")
         end
@@ -143,7 +142,7 @@ function motorboat.paint(self, colstr)
         self.color = colstr
         local l_textures = self.initial_properties.textures
         for _, texture in ipairs(l_textures) do
-            local i,indx = texture:find('motorboat_painting.png')
+            local indx = texture:find('motorboat_painting.png')
             if indx then
                 l_textures[_] = "motorboat_painting.png^[multiply:".. colstr
             end
@@ -153,7 +152,7 @@ function motorboat.paint(self, colstr)
 end
 
 -- destroy the boat
-function motorboat.destroy(self)
+function motorboat.destroy(self, puncher)
     if self.sound_handle then
         minetest.sound_stop(self.sound_handle)
         self.sound_handle = nil
@@ -163,7 +162,7 @@ function motorboat.destroy(self)
         -- detach the driver first (puncher must be driver)
         puncher:set_detach()
         puncher:set_eye_offset({x = 0, y = 0, z = 0}, {x = 0, y = 0, z = 0})
-        player_api.player_attached[name] = nil
+        player_api.player_attached[self.driver_name] = nil
         -- player should stand again
         player_api.set_animation(puncher, "stand")
         self.driver_name = nil
@@ -249,7 +248,8 @@ minetest.register_entity("motorboat:boat", {
 	    selectionbox = {-1,0,-1, 1,1,1},
 	    visual = "mesh",
 	    mesh = "hull2.b3d",
-        textures = {"motorboat_black.png", "motorboat_panel.png", "motorboat_glass.png", "motorboat_hull.png", "default_junglewood.png", "motorboat_painting.png"},
+        textures = {"motorboat_black.png", "motorboat_panel.png", "motorboat_glass.png",
+            "motorboat_hull.png", "default_junglewood.png", "motorboat_painting.png"},
     },
     textures = {},
 	driver_name = nil,
@@ -336,7 +336,6 @@ minetest.register_entity("motorboat:boat", {
         local pitch = rotation.x
         local newpitch = pitch
 		local roll = rotation.z
-		local newroll=roll
 
         local hull_direction = minetest.yaw_to_dir(yaw)
         local nhdir = {x=hull_direction.z,y=0,z=-hull_direction.x}		-- lateral unit vector
@@ -346,7 +345,8 @@ minetest.register_entity("motorboat:boat", {
         self.object:set_pos(curr_pos)
 
         local longit_speed = motorboat.dot(velocity,hull_direction)
-        local longit_drag = vector.multiply(hull_direction,longit_speed*longit_speed*LONGIT_DRAG_FACTOR*-1*motorboat.sign(longit_speed))
+        local longit_drag = vector.multiply(hull_direction,longit_speed*longit_speed*
+                    LONGIT_DRAG_FACTOR*-1*motorboat.sign(longit_speed))
 		local later_speed = motorboat.dot(velocity,nhdir)
 		local later_drag = vector.multiply(nhdir,later_speed*later_speed*LATER_DRAG_FACTOR*-1*motorboat.sign(later_speed))
         local accel = vector.add(longit_drag,later_drag)
@@ -369,22 +369,23 @@ minetest.register_entity("motorboat:boat", {
             local impact = motorboat.get_hipotenuse_value(vel, self.last_vel)
             if impact > 1 then
                 --self.damage = self.damage + impact --sum the impact value directly to damage meter
-                local curr_pos = self.object:get_pos()
+                curr_pos = self.object:get_pos()
                 minetest.sound_play("collision", {
-                    to_player = self.driver_name,
-	                --pos = curr_pos,
-	                --max_hear_distance = 5,
+                    --to_player = self.driver_name,
+	                pos = curr_pos,
+	                max_hear_distance = 8,
 	                gain = 1.0,
                     fade = 0.0,
                     pitch = 1.0,
                 })
                 --[[if self.damage > 100 then --if acumulated damage is greater than 100, adieu
-                    motorboat.destroy(self)   
+                    motorboat.destroy(self, puncher)
                 end]]--
             end
 
             --control
-			accel = motorboat.motorboat_control(self, dtime, hull_direction, longit_speed, longit_drag, later_speed, later_drag, accel) or vel
+			accel = motorboat.motorboat_control(self, dtime, hull_direction,
+                longit_speed, longit_drag, later_speed, later_drag, accel) or vel
         else
             -- for some engine error the player can be detached from the submarine, so lets set him attached again
             local can_stop = true
@@ -408,9 +409,10 @@ minetest.register_entity("motorboat:boat", {
 
         self.engine:set_attach(self.object,'',{x=0,y=6,z=-21},{x=0,y=self.rudder_angle,z=0})
 
-		if math.abs(self.rudder_angle)>5 then 
+		if math.abs(self.rudder_angle)>5 then
             local turn_rate = math.rad(24)
-			newyaw = yaw + self.dtime*(1 - 1 / (math.abs(longit_speed) + 1)) * self.rudder_angle / 30 * turn_rate * motorboat.sign(longit_speed)
+			newyaw = yaw + self.dtime*(1 - 1 / (math.abs(longit_speed) + 1)) *
+                self.rudder_angle / 30 * turn_rate * motorboat.sign(longit_speed)
 		end
 
         -- calculate energy consumption --
@@ -444,7 +446,7 @@ minetest.register_entity("motorboat:boat", {
 		local snormal = {x=sdir.z,y=0,z=-sdir.x}	-- rightside, dot is negative
 		local prsr = motorboat.dot(snormal,nhdir)
         local rollfactor = -10
-        newroll = (prsr*math.rad(rollfactor))*later_speed
+        local newroll = (prsr*math.rad(rollfactor))*later_speed
         --minetest.chat_send_all('newroll: '.. newroll)
         ---------------------------------
         -- end roll
@@ -477,8 +479,6 @@ minetest.register_entity("motorboat:boat", {
 			-- do not allow other players to remove the object while there is a driver
 			return
 		end
-
-        local touching_ground, liquid_below = motorboat.check_node_below(self.object)
         
         local is_attached = false
         if puncher:get_attach() == self.pilot_seat_base then is_attached = true end
@@ -528,7 +528,7 @@ minetest.register_entity("motorboat:boat", {
             end
 
             if self.hp <= 0 then
-                motorboat.destroy(self)
+                motorboat.destroy(self, puncher)
             end
 
         end
@@ -686,5 +686,5 @@ minetest.register_chatcommand("motorboat_eject", {
 		else
 			minetest.chat_send_player(name,colorstring)
 		end
-	end	
+	end
 })

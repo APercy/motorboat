@@ -171,6 +171,8 @@ function motorboat.destroy(self, puncher)
     local pos = self.object:get_pos()
     if self.pointer then self.pointer:remove() end
     if self.engine then self.engine:remove() end
+    if self.pilot_seat_base then self.pilot_seat_base:remove() end
+    if self.passenger_seat_base then self.passenger_seat_base:remove() end
 
     self.object:remove()
 
@@ -469,8 +471,12 @@ minetest.register_entity("motorboat:boat", {
 		if not puncher or not puncher:is_player() then
 			return
 		end
+        local is_admin = false
+        is_admin = minetest.check_player_privs(puncher, {server=true})
 		local name = puncher:get_player_name()
-        if self.owner and self.owner ~= name and self.owner ~= "" then return end
+        if self.owner and self.owner ~= name and self.owner ~= "" then
+            if is_admin == false then return end
+        end
         if self.owner == nil then
             self.owner = name
         end

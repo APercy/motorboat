@@ -346,7 +346,7 @@ minetest.register_entity("motorboat:boat", {
         local velocity = self.object:get_velocity()
         self.object:set_velocity(velocity)
         local curr_pos = self.object:get_pos()
-        self.object:set_pos(curr_pos)
+        self.object:move_to(curr_pos)
 
         local longit_speed = motorboat.dot(velocity,hull_direction)
         local longit_drag = vector.multiply(hull_direction,longit_speed*longit_speed*

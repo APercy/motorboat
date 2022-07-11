@@ -79,6 +79,34 @@ function motorboat.detect_player_api(player)
     return 0
 end
 
+function motorboat.engine_set_sound_and_animation(self)
+    --minetest.chat_send_all('test1 ' .. dump(self._engine_running) )
+    if self._engine_running then
+        if self._last_applied_power ~= self._power_lever then
+            --minetest.chat_send_all('test2')
+            self._last_applied_power = self._power_lever
+            motorboat.engineSoundPlay(self)
+        end
+    else
+        if self.sound_handle then
+            minetest.sound_stop(self.sound_handle)
+            self.sound_handle = nil
+        end
+    end
+end
+
+function motorboat.engineSoundPlay(self)
+    --sound
+    if self.sound_handle then minetest.sound_stop(self.sound_handle) end
+    if self.object then
+        self.sound_handle = minetest.sound_play({name = "engine"},
+            {object = self.object, gain = 1.0,
+                pitch = 0.5 + ((self._power_lever/100)/3),
+                max_hear_distance = 32,
+                loop = true,})
+    end
+end
+
 -- attach player
 function motorboat.attach(self, player)
     local name = player:get_player_name()
@@ -301,6 +329,8 @@ minetest.register_entity("motorboat:boat", {
     _passenger = nil,
     physics = motorboat.physics,
     _auto = false,
+    _power_lever = 0,
+    _last_applied_power = 0,
     --water_drag = 0,
 
     get_staticdata = function(self) -- unloaded/unloads ... is now saved
@@ -487,7 +517,10 @@ minetest.register_entity("motorboat:boat", {
 		if self.isinliquid then
 			accel.y = accel_y + bob
 			newpitch = velocity.y * math.rad(6)
-			self.object:set_acceleration(accel)
+
+            motorboat.engine_set_sound_and_animation(self)
+
+            self.object:set_acceleration(accel)
 		end
 
 		if newyaw~=yaw or newpitch~=pitch or newroll~=roll then self.object:set_rotation({x=newpitch,y=newyaw,z=newroll}) end

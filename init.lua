@@ -99,9 +99,9 @@ function motorboat.engineSoundPlay(self)
     --sound
     if self.sound_handle then minetest.sound_stop(self.sound_handle) end
     if self.object then
-        self.sound_handle = minetest.sound_play({name = "engine"},
+        self.sound_handle = minetest.sound_play({name = "motorboat_engine"},
             {object = self.object, gain = 1.0,
-                pitch = 0.5 + ((self._power_lever/100)/3),
+                pitch = 0.5 + ((self._power_lever/100)/2),
                 max_hear_distance = 32,
                 loop = true,})
     end
@@ -431,7 +431,7 @@ minetest.register_entity("motorboat:boat", {
             if impact > 1 then
                 --self.damage = self.damage + impact --sum the impact value directly to damage meter
                 curr_pos = self.object:get_pos()
-                minetest.sound_play("collision", {
+                minetest.sound_play("motorboat_collision", {
                     --to_player = self.driver_name,
 	                pos = curr_pos,
 	                max_hear_distance = 8,
@@ -515,6 +515,24 @@ minetest.register_entity("motorboat:boat", {
 		local bob = motorboat.minmax(motorboat.dot(accel,hull_direction),0.8)	-- vertical bobbing
 
 		if self.isinliquid then
+            if self._last_rnd == nil then self._last_rnd = math.random(1, 3) end
+            if self._last_water_touch == nil then self._last_water_touch = self._last_rnd end
+            if self._last_water_touch <= self._last_rnd then
+                self._last_water_touch = self._last_water_touch + self.dtime
+            end
+            if math.abs(bob) > 0.1 and self._last_water_touch >=self._last_rnd then
+                self._last_rnd = math.random(1, 3)
+                self._last_water_touch = 0
+                minetest.sound_play("default_water_footstep", {
+                    --to_player = self.driver_name,
+                    object = self.object,
+                    max_hear_distance = 15,
+                    gain = 0.07,
+                    fade = 0.0,
+                    pitch = 1.0,
+                }, true)
+            end
+
 			accel.y = accel_y + bob
 			newpitch = velocity.y * math.rad(6)
 
@@ -584,7 +602,7 @@ minetest.register_entity("motorboat:boat", {
 					    --mobkit.hurt(self,toolcaps.damage_groups.fleshy - 1)
 					    --mobkit.make_sound(self,'hit')
                         self.hp = self.hp - 10
-                        minetest.sound_play("collision", {
+                        minetest.sound_play("motorboat_collision", {
 	                        object = self.object,
 	                        max_hear_distance = 5,
 	                        gain = 1.0,

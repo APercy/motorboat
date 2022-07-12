@@ -146,7 +146,7 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed,
 			    elseif self._engine_running == false and self._energy > 0 then
 				    self._engine_running = true
 		            -- sound and animation
-	                self.sound_handle = minetest.sound_play({name = "engine"},
+	                self.sound_handle = minetest.sound_play({name = "motorboat_engine"},
 			                {object = self.object, gain = 1.0, pitch = 0.5, max_hear_distance = 32, loop = true,})
                     self.engine:set_animation_frame_speed(30)
 			    end

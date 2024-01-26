@@ -1,0 +1,11 @@
+# textdomain: motorboat
+Nice motorboat of =
+A nice boat=
+ nice motorboat=
+Boat engine=
+Hull of the boat=
+Motorboat=
+Ejects from motorboat=
+ >>> you are not inside your motorboat=
+anchors away!=
+weigh anchor!=

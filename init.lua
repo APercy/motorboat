@@ -7,7 +7,8 @@ local LATER_DRAG_FACTOR = 2.0
 motorboat={}
 motorboat.gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.8
 motorboat.fuel = {['biofuel:biofuel'] = 1,['biofuel:bottle_fuel'] = 1,
-                ['biofuel:phial_fuel'] = 0.25, ['biofuel:fuel_can'] = 10}
+                ['biofuel:phial_fuel'] = 0.25, ['biofuel:fuel_can'] = 10,
+                ['airutils:biofuel'] = 1,}
 
 motorboat.colors ={
     black='#2b2b2b',
@@ -154,6 +155,12 @@ function motorboat.dettach(self, player)
     player:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
     player_api.set_animation(player, "stand")
     self.object:set_acceleration(vector.multiply(motorboat.vector_up, -motorboat.gravity))
+
+    -- move player up
+    minetest.after(0.1, function(pos)
+        pos.y = pos.y + 2
+        player:set_pos(pos)
+    end, player:get_pos())
 end
 
 -- attach passenger
@@ -573,7 +580,7 @@ minetest.register_entity("motorboat:boat", {
         local item_name = ""
         if itmstck then item_name = itmstck:get_name() end
 
-        if is_attached == true and self._engine_running == false then
+        if self._engine_running == false then
             --minetest.chat_send_all('refuel')
             --refuel
             motorboat.loadFuel(self, puncher:get_player_name())
@@ -598,7 +605,8 @@ minetest.register_entity("motorboat:boat", {
                     -- end painting
 
 			    else -- deal damage
-				    if not self.driver and toolcaps and toolcaps.damage_groups and toolcaps.damage_groups.fleshy then
+				    if not self.driver and toolcaps and toolcaps.damage_groups and
+                        toolcaps.groupcaps and toolcaps.groupcaps.choppy then
 					    --mobkit.hurt(self,toolcaps.damage_groups.fleshy - 1)
 					    --mobkit.make_sound(self,'hit')
                         self.hp = self.hp - 10

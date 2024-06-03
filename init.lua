@@ -89,6 +89,7 @@ function motorboat.engine_set_sound_and_animation(self)
             motorboat.engineSoundPlay(self)
         end
     else
+        if self._power_lever > 0 then self._power_lever = 0 end
         if self.sound_handle then
             minetest.sound_stop(self.sound_handle)
             self.sound_handle = nil

@@ -239,9 +239,31 @@ function motorboat.destroy(self, puncher)
     if self.pilot_seat_base then self.pilot_seat_base:remove() end
     if self.passenger_seat_base then self.passenger_seat_base:remove() end
 
+    local lua_ent = self.object:get_luaentity()
+    local staticdata = lua_ent:get_staticdata(self)
+    local obj_name = lua_ent.name
+    local player = puncher
+
+    local stack = ItemStack(obj_name)
+    local stack_meta = stack:get_meta()
+    stack_meta:set_string("staticdata", staticdata)
+
+    if player then
+        local inv = player:get_inventory()
+        if inv then
+            if inv:room_for_item("main", stack) then
+                inv:add_item("main", stack)
+            else
+                minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5}, stack)
+            end
+        end
+    else
+        minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5}, stack)
+    end
+
     self.object:remove()
 
-    pos.y=pos.y+2
+    --[[pos.y=pos.y+2
     for i=1,7 do
 	    minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5},'default:steel_ingot')
     end
@@ -251,7 +273,7 @@ function motorboat.destroy(self, puncher)
     end
 
     --minetest.add_item({x=pos.x+random()-0.5,y=pos.y,z=pos.z+random()-0.5},'motorboat:boat')
-    minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5},'default:diamond')
+    minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5},'default:diamond')]]--
 
     --[[local total_biofuel = math.floor(self._energy) - 1
     for i=0,total_biofuel do
@@ -693,26 +715,31 @@ minetest.register_craftitem("motorboat:hull",{
 
 
 -- boat
-minetest.register_craftitem("motorboat:boat", {
+minetest.register_tool("motorboat:boat", {
 	description = "Motorboat",
 	inventory_image = "motorboat_inv.png",
     liquids_pointable = true,
+    stack_max = 1,
 
 	on_place = function(itemstack, placer, pointed_thing)
 		if pointed_thing.type ~= "node" then
 			return
 		end
         
+        local stack_meta = itemstack:get_meta()
+        local staticdata = stack_meta:get_string("staticdata")
+
         local pointed_pos = pointed_thing.under
         local node_below = minetest.get_node(pointed_pos).name
         local nodedef = minetest.registered_nodes[node_below]
         if nodedef.liquidtype ~= "none" then
 			pointed_pos.y=pointed_pos.y+0.2
-			local boat = minetest.add_entity(pointed_pos, "motorboat:boat")
+			local boat = minetest.add_entity(pointed_pos, "motorboat:boat", staticdata)
 			if boat and placer then
                 local ent = boat:get_luaentity()
                 local owner = placer:get_player_name()
                 ent.owner = owner
+                ent.hp = 50 --reset hp
 				boat:set_yaw(placer:get_look_horizontal())
 				itemstack:take_item()
 

@@ -32,12 +32,23 @@ dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_control.lua"
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_fuel_management.lua")
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_custom_physics.lua")
 
+--is minetest
+local splash_texture = "motorboat_splash2.png"
+--[[if minetest.get_modpath("mtg_craftguide") then
+    splash_texture = "default_water.png^[resize:6x6^[mask:motorboat_splash.png"
+end]]--
+
+motorboat.use_particles = false
+if minetest.settings:get_bool('motorboat_enable_particles', false) then
+    motorboat.use_particles = true
+end
 
 --
 -- helpers and co.
 --
 
 function motorboat.get_hipotenuse_value(point1, point2)
+    if point1 == nil or point2 == nil then return 0 end
     return math.sqrt((point1.x - point2.x) ^ 2 + (point1.y - point2.y) ^ 2 + (point1.z - point2.z) ^ 2)
 end
 
@@ -281,6 +292,57 @@ function motorboat.destroy(self, puncher)
     end]]--
 end
 
+function calculateVelocity(magnitude, angle)
+    -- Calcula os componentes do vetor usando ângulo polar
+    -- Supondo que o ângulo é dado no plano XY, com z = 0
+    local velocity = {
+        x = magnitude * math.cos(angle),
+        y = 0, -- Se a velocidade não tem componente z
+        z = magnitude * math.sin(angle),
+    }
+    
+    return velocity
+end
+
+local function water_particle(pos, vel)
+    if splash_texture == "" then return end
+
+	minetest.add_particle({
+		pos = pos,
+		velocity = vel, --{x = 0, y = 0, z = 0},
+		acceleration = {x = 0, y = 0, z = 0},
+		expirationtime = 2.0,
+		size = 4.8,
+		collisiondetection = false,
+		collision_removal = false,
+		vertical = false,
+		texture = splash_texture,
+	})
+end
+
+local function add_splash(pos, yaw, x_pos)
+    local direction = yaw
+
+    local spl_pos = vector.new(pos)  
+    water_particle(spl_pos, {x=0,y=0,z=0})
+
+    --right
+    local move = x_pos/10
+    spl_pos.x = spl_pos.x + move * math.cos(direction)
+    spl_pos.z = spl_pos.z + move * math.sin(direction)
+    
+    local velocity = calculateVelocity(1.0, yaw)
+    water_particle(spl_pos, velocity)
+
+    --left
+    direction = direction - math.rad(180)
+    spl_pos = vector.new(pos)
+    spl_pos.x = spl_pos.x + move * math.cos(direction)
+    spl_pos.z = spl_pos.z + move * math.sin(direction)
+    
+    velocity = calculateVelocity(1.0, yaw - math.rad(180))
+    water_particle(spl_pos, velocity)
+end
 
 --
 -- entity
@@ -569,6 +631,17 @@ minetest.register_entity("motorboat:boat", {
             motorboat.engine_set_sound_and_animation(self)
 
             self.object:set_acceleration(accel)
+
+            if motorboat.use_particles == true then
+                local splash_frequency = 0.15
+                if self._last_splash == nil then self._last_splash = 0.5 else self._last_splash = self._last_splash + self.dtime end
+                if longit_speed >= 2.0 and self.last_vel and self._last_splash >= splash_frequency then
+                    self._last_splash = 0
+                    local splash_pos = vector.new(curr_pos)
+                    splash_pos.y = splash_pos.y - 0.1
+                    add_splash(splash_pos, newyaw, 7)
+                end
+            end
 		end
 
 		if newyaw~=yaw or newpitch~=pitch or newroll~=roll then self.object:set_rotation({x=newpitch,y=newyaw,z=newroll}) end

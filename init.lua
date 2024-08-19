@@ -292,7 +292,7 @@ function motorboat.destroy(self, puncher)
     end]]--
 end
 
-function calculateVelocity(magnitude, angle)
+local function calculateVelocity(magnitude, angle)
     -- Calcula os componentes do vetor usando ângulo polar
     -- Supondo que o ângulo é dado no plano XY, com z = 0
     local velocity = {

@@ -1,4 +1,5 @@
 --global constants
+local S = motorboat.S
 
 motorboat.motorboat_last_time_command = 0
 motorboat.vector_up = vector.new(0, 1, 0)
@@ -65,10 +66,10 @@ function motorboat.motorboat_control(self, dtime, hull_direction, longit_speed,
 		    if self.anchored == false then
                 self.anchored = true
                 self.object:set_velocity(vector.new())
-                minetest.chat_send_player(self.driver_name, 'anchors away!')
+                minetest.chat_send_player(self.driver_name, S("anchors away!"))
             else
                 self.anchored = false
-                minetest.chat_send_player(self.driver_name, 'weigh anchor!')
+                minetest.chat_send_player(self.driver_name, S("weigh anchor!"))
             end
         end
 

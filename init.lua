@@ -28,6 +28,17 @@ motorboat.colors ={
     yellow='#ffe400',
 }
 
+motorboat.S = nil
+
+if(minetest.get_translator ~= nil) then
+    motorboat.S = minetest.get_translator(minetest.get_current_modname())
+
+else
+    motorboat.S = function ( s ) return s end
+
+end
+
+local S = motorboat.S
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_control.lua")
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_fuel_management.lua")
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_custom_physics.lua")
@@ -67,7 +78,7 @@ end
 function motorboat.setText(self)
     local properties = self.object:get_properties()
     if properties then
-        properties.infotext = "Nice motorboat of " .. self.owner
+        properties.infotext = S("Nice motorboat of ") .. self.owner
         self.object:set_properties(properties)
     end
 end
@@ -408,7 +419,7 @@ minetest.register_entity("motorboat:boat", {
     _energy = 0.001,
     owner = "",
     static_save = true,
-    infotext = "A nice boat",
+    infotext = S("A nice boat"),
     lastvelocity = vector.new(),
     hp = 50,
     color = "#07B6BC",
@@ -447,7 +458,7 @@ minetest.register_entity("motorboat:boat", {
             self.driver_name = data.stored_driver_name
             --minetest.debug("loaded: ", self._energy)
             local properties = self.object:get_properties()
-            properties.infotext = data.stored_owner .. " nice motorboat"
+            properties.infotext = data.stored_owner .. S(" nice motorboat")
             self.object:set_properties(properties)
         end
 
@@ -777,19 +788,19 @@ minetest.register_entity("motorboat:boat", {
 
 -- engine
 minetest.register_craftitem("motorboat:engine",{
-	description = "Boat engine",
+	description = S("Boat engine"),
 	inventory_image = "motorboat_engine_inv.png",
 })
 -- hull
 minetest.register_craftitem("motorboat:hull",{
-	description = "Hull of the boat",
+	description = S("Hull of the boat"),
 	inventory_image = "motorboat_hull_inv.png",
 })
 
 
 -- boat
-minetest.register_tool("motorboat:boat", {
-	description = "Motorboat",
+minetest.register_craftitem("motorboat:boat", {
+	description = S("Motorboat"),
 	inventory_image = "motorboat_inv.png",
     liquids_pointable = true,
     stack_max = 1,
@@ -817,7 +828,7 @@ minetest.register_tool("motorboat:boat", {
 				itemstack:take_item()
 
                 local properties = ent.object:get_properties()
-                properties.infotext = owner .. " nice motorboat"
+                properties.infotext = owner .. S(" nice motorboat")
                 ent.object:set_properties(properties)
 			end
         end
@@ -861,10 +872,10 @@ end
 
 minetest.register_chatcommand("motorboat_eject", {
 	params = "",
-	description = "Ejects from motorboat",
+	description = S("Ejects from motorboat"),
 	privs = {interact = true},
 	func = function(name, param)
-        local colorstring = core.colorize('#ff0000', " >>> you are not inside your motorboat")
+        local colorstring = core.colorize('#ff0000', S(" >>> you are not inside your motorboat"))
         local player = minetest.get_player_by_name(name)
         local attached_to = player:get_attach()
 

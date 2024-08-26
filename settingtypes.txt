@@ -1,0 +1,5 @@
+# all settings for client menu or in minetest.conf on servers
+
+# enable particles when traveling
+motorboat_enable_particles (enable particles) bool false
+

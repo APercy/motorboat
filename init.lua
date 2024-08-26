@@ -7,7 +7,8 @@ local LATER_DRAG_FACTOR = 2.0
 motorboat={}
 motorboat.gravity = tonumber(minetest.settings:get("movement_gravity")) or 9.8
 motorboat.fuel = {['biofuel:biofuel'] = 1,['biofuel:bottle_fuel'] = 1,
-                ['biofuel:phial_fuel'] = 0.25, ['biofuel:fuel_can'] = 10}
+                ['biofuel:phial_fuel'] = 0.25, ['biofuel:fuel_can'] = 10,
+                ['airutils:biofuel'] = 1,}
 
 motorboat.colors ={
     black='#2b2b2b',
@@ -42,12 +43,23 @@ dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_control.lua"
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_fuel_management.lua")
 dofile(minetest.get_modpath("motorboat") .. DIR_DELIM .. "motorboat_custom_physics.lua")
 
+--is minetest
+local splash_texture = "motorboat_splash2.png"
+--[[if minetest.get_modpath("mtg_craftguide") then
+    splash_texture = "default_water.png^[resize:6x6^[mask:motorboat_splash.png"
+end]]--
+
+motorboat.use_particles = false
+if minetest.settings:get_bool('motorboat_enable_particles', false) then
+    motorboat.use_particles = true
+end
 
 --
 -- helpers and co.
 --
 
 function motorboat.get_hipotenuse_value(point1, point2)
+    if point1 == nil or point2 == nil then return 0 end
     return math.sqrt((point1.x - point2.x) ^ 2 + (point1.y - point2.y) ^ 2 + (point1.z - point2.z) ^ 2)
 end
 
@@ -99,6 +111,7 @@ function motorboat.engine_set_sound_and_animation(self)
             motorboat.engineSoundPlay(self)
         end
     else
+        if self._power_lever > 0 then self._power_lever = 0 end
         if self.sound_handle then
             minetest.sound_stop(self.sound_handle)
             self.sound_handle = nil
@@ -165,6 +178,12 @@ function motorboat.dettach(self, player)
     player:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
     player_api.set_animation(player, "stand")
     self.object:set_acceleration(vector.multiply(motorboat.vector_up, -motorboat.gravity))
+
+    -- move player up
+    minetest.after(0.1, function(pos)
+        pos.y = pos.y + 2
+        player:set_pos(pos)
+    end, player:get_pos())
 end
 
 -- attach passenger
@@ -242,9 +261,31 @@ function motorboat.destroy(self, puncher)
     if self.pilot_seat_base then self.pilot_seat_base:remove() end
     if self.passenger_seat_base then self.passenger_seat_base:remove() end
 
+    local lua_ent = self.object:get_luaentity()
+    local staticdata = lua_ent:get_staticdata(self)
+    local obj_name = lua_ent.name
+    local player = puncher
+
+    local stack = ItemStack(obj_name)
+    local stack_meta = stack:get_meta()
+    stack_meta:set_string("staticdata", staticdata)
+
+    if player then
+        local inv = player:get_inventory()
+        if inv then
+            if inv:room_for_item("main", stack) then
+                inv:add_item("main", stack)
+            else
+                minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5}, stack)
+            end
+        end
+    else
+        minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5}, stack)
+    end
+
     self.object:remove()
 
-    pos.y=pos.y+2
+    --[[pos.y=pos.y+2
     for i=1,7 do
 	    minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5},'default:steel_ingot')
     end
@@ -254,7 +295,7 @@ function motorboat.destroy(self, puncher)
     end
 
     --minetest.add_item({x=pos.x+random()-0.5,y=pos.y,z=pos.z+random()-0.5},'motorboat:boat')
-    minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5},'default:diamond')
+    minetest.add_item({x=pos.x+math.random()-0.5,y=pos.y,z=pos.z+math.random()-0.5},'default:diamond')]]--
 
     --[[local total_biofuel = math.floor(self._energy) - 1
     for i=0,total_biofuel do
@@ -262,6 +303,57 @@ function motorboat.destroy(self, puncher)
     end]]--
 end
 
+local function calculateVelocity(magnitude, angle)
+    -- Calcula os componentes do vetor usando ângulo polar
+    -- Supondo que o ângulo é dado no plano XY, com z = 0
+    local velocity = {
+        x = magnitude * math.cos(angle),
+        y = 0, -- Se a velocidade não tem componente z
+        z = magnitude * math.sin(angle),
+    }
+    
+    return velocity
+end
+
+local function water_particle(pos, vel)
+    if splash_texture == "" then return end
+
+	minetest.add_particle({
+		pos = pos,
+		velocity = vel, --{x = 0, y = 0, z = 0},
+		acceleration = {x = 0, y = 0, z = 0},
+		expirationtime = 2.0,
+		size = 4.8,
+		collisiondetection = false,
+		collision_removal = false,
+		vertical = false,
+		texture = splash_texture,
+	})
+end
+
+local function add_splash(pos, yaw, x_pos)
+    local direction = yaw
+
+    local spl_pos = vector.new(pos)  
+    water_particle(spl_pos, {x=0,y=0,z=0})
+
+    --right
+    local move = x_pos/10
+    spl_pos.x = spl_pos.x + move * math.cos(direction)
+    spl_pos.z = spl_pos.z + move * math.sin(direction)
+    
+    local velocity = calculateVelocity(1.0, yaw)
+    water_particle(spl_pos, velocity)
+
+    --left
+    direction = direction - math.rad(180)
+    spl_pos = vector.new(pos)
+    spl_pos.x = spl_pos.x + move * math.cos(direction)
+    spl_pos.z = spl_pos.z + move * math.sin(direction)
+    
+    velocity = calculateVelocity(1.0, yaw - math.rad(180))
+    water_particle(spl_pos, velocity)
+end
 
 --
 -- entity
@@ -550,6 +642,17 @@ minetest.register_entity("motorboat:boat", {
             motorboat.engine_set_sound_and_animation(self)
 
             self.object:set_acceleration(accel)
+
+            if motorboat.use_particles == true then
+                local splash_frequency = 0.15
+                if self._last_splash == nil then self._last_splash = 0.5 else self._last_splash = self._last_splash + self.dtime end
+                if longit_speed >= 2.0 and self.last_vel and self._last_splash >= splash_frequency then
+                    self._last_splash = 0
+                    local splash_pos = vector.new(curr_pos)
+                    splash_pos.y = splash_pos.y - 0.1
+                    add_splash(splash_pos, newyaw, 7)
+                end
+            end
 		end
 
 		if newyaw~=yaw or newpitch~=pitch or newroll~=roll then self.object:set_rotation({x=newpitch,y=newyaw,z=newroll}) end
@@ -584,7 +687,7 @@ minetest.register_entity("motorboat:boat", {
         local item_name = ""
         if itmstck then item_name = itmstck:get_name() end
 
-        if is_attached == true and self._engine_running == false then
+        if self._engine_running == false then
             --minetest.chat_send_all('refuel')
             --refuel
             motorboat.loadFuel(self, puncher:get_player_name())
@@ -609,7 +712,8 @@ minetest.register_entity("motorboat:boat", {
                     -- end painting
 
 			    else -- deal damage
-				    if not self.driver and toolcaps and toolcaps.damage_groups and toolcaps.damage_groups.fleshy then
+				    if not self.driver and toolcaps and toolcaps.damage_groups and
+                        toolcaps.groupcaps and toolcaps.groupcaps.choppy then
 					    --mobkit.hurt(self,toolcaps.damage_groups.fleshy - 1)
 					    --mobkit.make_sound(self,'hit')
                         self.hp = self.hp - 10
@@ -699,22 +803,27 @@ minetest.register_craftitem("motorboat:boat", {
 	description = S("Motorboat"),
 	inventory_image = "motorboat_inv.png",
     liquids_pointable = true,
+    stack_max = 1,
 
 	on_place = function(itemstack, placer, pointed_thing)
 		if pointed_thing.type ~= "node" then
 			return
 		end
         
+        local stack_meta = itemstack:get_meta()
+        local staticdata = stack_meta:get_string("staticdata")
+
         local pointed_pos = pointed_thing.under
         local node_below = minetest.get_node(pointed_pos).name
         local nodedef = minetest.registered_nodes[node_below]
         if nodedef.liquidtype ~= "none" then
 			pointed_pos.y=pointed_pos.y+0.2
-			local boat = minetest.add_entity(pointed_pos, "motorboat:boat")
+			local boat = minetest.add_entity(pointed_pos, "motorboat:boat", staticdata)
 			if boat and placer then
                 local ent = boat:get_luaentity()
                 local owner = placer:get_player_name()
                 ent.owner = owner
+                ent.hp = 50 --reset hp
 				boat:set_yaw(placer:get_look_horizontal())
 				itemstack:take_item()
 

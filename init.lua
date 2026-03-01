@@ -604,7 +604,7 @@ minetest.register_entity("motorboat:boat", {
         ---------------------------------
         -- end roll
 
-		local bob = motorboat.minmax(motorboat.dot(accel,hull_direction),0.4)	-- vertical bobbing
+		local bob = motorboat.minmax(motorboat.dot(accel,hull_direction),0.8)	-- vertical bobbing
 
 		if self.isinliquid then
             if self._last_rnd == nil then self._last_rnd = math.random(1, 3) end

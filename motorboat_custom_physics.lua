@@ -56,7 +56,7 @@ function motorboat.physics(self)
 --		local balance = self.buoyancy*self.height
 		local buoyacc = mobkit.gravity*(self.buoyancy-submergence)
 		mobkit.set_acceleration(self.object,
-			{x=-vel.x*self.water_drag,y=buoyacc-vel.y*abs(vel.y)*0.2,z=-vel.z*self.water_drag})
+			{x=-vel.x*self.water_drag,y=buoyacc-vel.y*abs(vel.y)*0.8,z=-vel.z*self.water_drag})
 	else
 --		self.isinliquid = false
 		self.object:set_acceleration({x=0,y=mobkit.gravity,z=0})

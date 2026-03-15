@@ -1,0 +1,11 @@
+# textdomain: motorboat
+Nice motorboat of =Schönes Motorboot von
+A nice boat=Ein schönes Boot
+ nice motorboat= schönes Motorboot
+Boat engine=Bootsmotor
+Hull of the boat=Bootskörper
+Motorboat=Motorboot
+Ejects from motorboat=Wirft dich vom Motorboot
+ >>> you are not inside your motorboat= >>> du sitzt in keinem Motorboot
+anchors away!=Anker einholen!
+weigh anchor!=Anker lichten!

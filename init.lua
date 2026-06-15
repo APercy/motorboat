@@ -6,9 +6,20 @@ local LATER_DRAG_FACTOR = 2.0
 
 motorboat={}
 motorboat.gravity = tonumber(core.settings:get("movement_gravity")) or 9.8
-motorboat.fuel = {['biofuel:biofuel'] = 1,['biofuel:bottle_fuel'] = 1,
-                ['biofuel:phial_fuel'] = 0.25, ['biofuel:fuel_can'] = 10,
-                ['airutils:biofuel'] = 1,}
+motorboat.fuel = {}
+
+for name, fuel in pairs({
+    ['biofuel:biofuel'] = 1,
+    ['biofuel:bottle_fuel'] = 1,
+    ['biofuel:phial_fuel'] = 0.25,
+    ['biofuel:fuel_can'] = 10,
+    ['airutils:biofuel'] = 1,
+    ['basic_materials:oil_extract'] = 1,
+}) do
+    if core.registered_items[name] then
+        motorboat.fuel[name] = fuel
+    end
+end
 
 motorboat.colors ={
     black='#2b2b2b',

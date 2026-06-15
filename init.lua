@@ -140,7 +140,6 @@ function motorboat.attach(self, player)
     if motorboat.detect_player_api(player) == 1 then
         eye_y = 2.5
     end
-    player:set_eye_offset({x = 0, y = eye_y, z = 1}, {x = 0, y = -4, z = -30})
     player_api.player_attached[name] = true
     -- make the driver sit
     core.after(0.2, function()
@@ -173,7 +172,6 @@ function motorboat.dettach(self, player)
     -- detach the player
     player:set_detach()
     player_api.player_attached[name] = nil
-    player:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
     player_api.set_animation(player, "stand")
     self.object:set_acceleration(vector.multiply(motorboat.vector_up, -motorboat.gravity))
 
@@ -194,7 +192,6 @@ function motorboat.attach_pax(self, player)
     if motorboat.detect_player_api(player) == 1 then
         eye_y = 2.5
     end
-    player:set_eye_offset({x = 0, y = eye_y, z = 1}, {x = 0, y = eye_y, z = -30})
     player_api.player_attached[name] = true
     -- make the driver sit
     core.after(0.2, function()
@@ -216,7 +213,6 @@ function motorboat.dettach_pax(self, player)
     if player then
         player:set_detach()
         player_api.player_attached[name] = nil
-        player:set_eye_offset({x=0,y=0,z=0},{x=0,y=0,z=0})
         player_api.set_animation(player, "stand")
     end
 end
@@ -246,7 +242,6 @@ function motorboat.destroy(self, puncher)
     if self.driver_name then
         -- detach the driver first (puncher must be driver)
         puncher:set_detach()
-        puncher:set_eye_offset({x = 0, y = 0, z = 0}, {x = 0, y = 0, z = 0})
         player_api.player_attached[self.driver_name] = nil
         -- player should stand again
         player_api.set_animation(puncher, "stand")
